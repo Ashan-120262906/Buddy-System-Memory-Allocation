@@ -1,0 +1,194 @@
+import java.util.Scanner;
+
+public class BuddySystem {
+    static int[] tree = new int[2050]; // Memory tree initialized to 0
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        int totsize, req, ch;
+
+        System.out.println("\nBuddy System Requirements :\n");
+        System.out.print("Enter total size of memory: ");
+        totsize = scanner.nextInt();
+
+        while (true) {
+            // Display menu options
+            System.out.println("\n1. Allocate process into memory");
+            System.out.println("2. Remove process from memory");
+            System.out.println("3. Tree structure for memory allocation map");
+            System.out.println("4. Exit");
+            System.out.print("Enter choice: ");
+            ch = scanner.nextInt();
+
+            switch (ch) {
+                case 1:
+                    // Allocate memory for a process
+                    System.out.println("\nMemory Allocation:");
+                    System.out.print("Enter size of process: ");
+                    req = scanner.nextInt();
+                    segmentAlloc(totsize, req);
+                    break;
+
+                case 2:
+                    // Deallocate memory for a process
+                    System.out.println("\nMemory Deallocation:");
+                    System.out.print("Enter size of process to be removed: ");
+                    req = scanner.nextInt();
+                    makeFree(req);
+                    break;
+
+                case 3:
+                    // Display the memory allocation map
+                    System.out.println("\nMemory Allocation Map:");
+                    printing(totsize, 0);
+                    break;
+
+                case 4:
+                    // Exit the program
+                    scanner.close();
+                    System.exit(0);
+
+                default:
+                    System.out.println("\nInvalid choice! Try again.\n");
+            }
+        }
+    }
+
+    // Function to allocate memory for a process
+    public static void segmentAlloc(int total, int req) {
+        int size = total;
+        int flevel = 0;
+
+        // Check if the requested size exceeds total memory
+        if (req > size) {
+            System.out.println("\nSystem does not have enough memory!\n");
+            return;
+        }
+
+        // Determine the smallest block that can fit the request
+        while (true) {
+            if (req <= size && req > size / 2) {
+                break;
+            } else {
+                size /= 2;
+                flevel++;
+            }
+        }
+
+        // Allocate memory at the appropriate block
+        for (int i = power(2, flevel) - 1; i <= power(2, flevel + 1) - 2; i++) {
+            if (tree[i] == 0 && place(i)) {
+                tree[i] = req;
+                makeDivided(i);
+                System.out.println("\nSuccessful allocation!\n");
+                return;
+            }
+        }
+
+        System.out.println("\nDoes not have enough memory!\n");
+    }
+
+    // Function to check if a node can be allocated
+    public static boolean place(int node) {
+        while (node != 0) {
+            node = (node % 2 == 0) ? (node - 1) / 2 : node / 2;
+            if (tree[node] > 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Mark the parent nodes as divided
+    public static void makeDivided(int node) {
+        while (node != 0) {
+            node = (node % 2 == 0) ? (node - 1) / 2 : node / 2;
+            tree[node] = 1;
+        }
+    }
+
+    // Function to free the allocated memory
+    public static void makeFree(int req) {
+        int node = 0;
+
+        // Locate the node with the requested size
+        while (true) {
+            if (tree[node] == req) {
+                break;
+            } else {
+                node++;
+            }
+        }
+
+        tree[node] = 0;
+
+        // Merge adjacent free blocks
+        while (node != 0) {
+            if (tree[node] == 0 && tree[(node % 2 == 0) ? (node - 1) : (node + 1)] == 0) {
+                tree[(node % 2 == 0) ? (node - 1) / 2 : node / 2] = 0;
+                node = (node % 2 == 0) ? (node - 1) / 2 : node / 2;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // Utility function to calculate x raised to the power y
+    public static int power(int x, int y) {
+        int ans = 1;
+        for (int i = 0; i < y; i++) {
+            ans *= x;
+        }
+        return ans;
+    }
+
+    // Function to print the memory allocation map
+    public static void printing(int tot, int node) {
+        int perm = 0, llimit = 0, ulimit = 0, tab = 0;
+
+        // Determine if the node can be printed
+        if (node == 0) {
+            perm = 1;
+        } else if (node % 2 == 0) {
+            perm = (tree[(node - 1) / 2] == 1) ? 1 : 0;
+        } else {
+            perm = (tree[node / 2] == 1) ? 1 : 0;
+        }
+
+        if (perm == 1) {
+            llimit = ulimit = 0;
+            while (true) {
+                if (node >= llimit && node <= ulimit) {
+                    break;
+                } else {
+                    tab++;
+                    llimit = ulimit + 1;
+                    ulimit = 2 * ulimit + 2;
+                }
+            }
+
+            // Print memory block details
+            for (int i = 0; i < tab; i++) {
+                System.out.print("  ");
+            }
+
+            System.out.print(tot / power(2, tab));
+
+            if (tree[node] > 1) {
+                System.out.println(" --> Allocates " + tree[node]);
+            } else if (tree[node] == 1) {
+                System.out.println(" --> Divided");
+            } else {
+                System.out.println(" --> Free");
+            }
+
+            // Recursively print child nodes
+            if (2 * node + 1 < 2050) {
+                printing(tot, 2 * node + 1);
+            }
+            if (2 * node + 2 < 2050) {
+                printing(tot, 2 * node + 2);
+            }
+        }
+    }
+}
